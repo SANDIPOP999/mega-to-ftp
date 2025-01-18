@@ -5,8 +5,7 @@ services:
     plan: free
     buildCommand: "pip install -r requirements.txt"
     startCommand: "python app.py"
-    regions:
-      - oregon
+    regions: oregon
     envVars:
       - key: FTP_HOST
         value: "ftp.example.com"  # Replace with your FTP host
