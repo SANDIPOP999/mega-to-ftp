@@ -1,5 +1,2 @@
-fastapi==0.75.0
-uvicorn==0.17.0
-python-dotenv==0.19.2
-mega.py==1.0.8
-requests==2.25.1
+Flask==2.3.2
+megadown==0.3.0
