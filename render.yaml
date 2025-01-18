@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: mega-file-upload
+    env: python
+    plan: free
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python app.py"
+    regions:
+      - oregon
+    envVars:
+      - key: FTP_HOST
+        value: "ftp.example.com"  # Replace with your FTP host
+      - key: FTP_USER
+        value: "your_ftp_username"  # Replace with your FTP username
+      - key: FTP_PASS
+        value: "your_ftp_password"  # Replace with your FTP password
+      - key: FTP_PATH
+        value: "/path/to/upload"  # Replace with your FTP target path
+    # Optional: specify a custom domain for your web service
+    # domain: "yourcustomdomain.com"
