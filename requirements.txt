@@ -2,5 +2,4 @@ fastapi==0.75.0
 uvicorn==0.17.0
 python-dotenv==0.19.2
 mega.py==1.0.8
-ftplib==0.1.2
 requests==2.25.1
