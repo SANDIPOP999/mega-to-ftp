@@ -4,15 +4,13 @@ services:
     env: python
     plan: free
     buildCommand: "pip install -r requirements.txt"
-    startCommand: "python app.py"
+    startCommand: "uvicorn app:app --host 0.0.0.0 --port 8080"
     envVars:
       - key: FTP_HOST
-        value: "ftp.example.com"  # Replace with your FTP host
+        value: "ftp.example.com"
       - key: FTP_USER
-        value: "your_ftp_username"  # Replace with your FTP username
+        value: "your_ftp_username"
       - key: FTP_PASS
-        value: "your_ftp_password"  # Replace with your FTP password
+        value: "your_ftp_password"
       - key: FTP_PATH
-        value: "/path/to/upload"  # Replace with your FTP target path
-    # Optional: specify a custom domain for your web service
-    # domain: "yourcustomdomain.com"
+        value: "/path/to/upload"
