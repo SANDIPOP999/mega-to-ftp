@@ -1,10 +1,9 @@
 import os
 from flask import Flask, request, jsonify
-from mega import Mega
+from megadown import MegaDown
 from ftplib import FTP
 import tempfile
 import shutil
-from megadown import Mega as MegaDown
 
 app = Flask(__name__)
 
@@ -13,7 +12,7 @@ FTP_HOST = os.getenv("FTP_HOST")
 FTP_USER = os.getenv("FTP_USER")
 FTP_PASS = os.getenv("FTP_PASS")
 
-# Mega client initialization
+# Initialize MegaDown client
 mega = MegaDown()
 
 
@@ -24,26 +23,29 @@ def download_and_upload():
     if not mega_url:
         return jsonify({"error": "MEGA URL is required"}), 400
     
-    # Download file from MEGA
-    temp_dir = tempfile.mkdtemp()
-    file_path = mega.download(mega_url, temp_dir)
-
-    if not file_path:
+    # Download file from MEGA using MegaDown
+    try:
+        file = mega.download(mega_url)
+    except Exception as e:
+        return jsonify({"error": f"Failed to download file from MEGA: {str(e)}"}), 500
+    
+    if not file:
         return jsonify({"error": "Failed to download file from MEGA"}), 500
 
     # Generate the file path for FTP upload
-    filename = os.path.basename(file_path)
+    filename = os.path.basename(file)
     remote_path = generate_ftp_path(filename)
 
     # Upload the file to FTP
     try:
-        upload_to_ftp(file_path, remote_path)
+        upload_to_ftp(file, remote_path)
         return jsonify({"message": f"File uploaded successfully to {remote_path}"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     finally:
-        # Clean up temporary directory
-        shutil.rmtree(temp_dir)
+        # Clean up temporary directory if used
+        if os.path.exists(file):
+            os.remove(file)
 
 
 def generate_ftp_path(filename):
