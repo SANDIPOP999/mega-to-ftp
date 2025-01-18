@@ -1,2 +1,3 @@
 Flask==2.3.2
-megadown==0.3.0
+git+https://github.com/tonikelope/megadown.git#egg=megadown
+
