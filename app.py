@@ -1,78 +1,73 @@
 import os
-import time
+from flask import Flask, request, jsonify
 from mega import Mega
 from ftplib import FTP
-from fastapi import FastAPI, Form
-from pydantic import BaseModel
-from dotenv import load_dotenv
+import tempfile
+import shutil
+from megadown import Mega as MegaDown
 
-# Load environment variables from .env file
-load_dotenv()
+app = Flask(__name__)
 
-# Initialize FastAPI app
-app = FastAPI()
-
-# FTP credentials from environment variables
+# FTP credentials
 FTP_HOST = os.getenv("FTP_HOST")
 FTP_USER = os.getenv("FTP_USER")
 FTP_PASS = os.getenv("FTP_PASS")
-FTP_PATH = os.getenv("FTP_PATH")
 
-# Retry logic for FTP upload
-def upload_file_with_retry(local_file_path, retries=5, delay=2):
-    attempt = 0
-    while attempt < retries:
-        try:
-            with FTP(FTP_HOST) as ftp:
-                ftp.login(FTP_USER, FTP_PASS)
-                with open(local_file_path, "rb") as file:
-                    ftp.cwd(FTP_PATH)
-                    ftp.storbinary(f"STOR {os.path.basename(local_file_path)}", file)
-            print("Upload successful!")
-            break
-        except Exception as e:
-            attempt += 1
-            print(f"Attempt {attempt} failed: {e}")
-            if attempt < retries:
-                print(f"Retrying in {delay} seconds...")
-                time.sleep(delay)
-            else:
-                print("All attempts failed.")
+# Mega client initialization
+mega = MegaDown()
 
-# Download Mega file and upload to FTP
-def download_and_upload_file(mega_url, local_file_path):
-    # Initialize Mega API
-    mega = Mega()
-    m = mega.login()  # Log in anonymously
 
-    # Download file from Mega
-    print(f"Downloading file from Mega: {mega_url}")
-    file = m.download_url(mega_url, local_file_path)
-    print(f"File downloaded: {file}")
+@app.route('/download_and_upload', methods=['POST'])
+def download_and_upload():
+    mega_url = request.form.get('mega_url')
+    
+    if not mega_url:
+        return jsonify({"error": "MEGA URL is required"}), 400
+    
+    # Download file from MEGA
+    temp_dir = tempfile.mkdtemp()
+    file_path = mega.download(mega_url, temp_dir)
 
-    # Upload to FTP
-    upload_file_with_retry(local_file_path)
+    if not file_path:
+        return jsonify({"error": "Failed to download file from MEGA"}), 500
 
-# Define Pydantic model for the form data
-class FileUploadRequest(BaseModel):
-    mega_url: str
+    # Generate the file path for FTP upload
+    filename = os.path.basename(file_path)
+    remote_path = generate_ftp_path(filename)
 
-# Route to serve the landing page (HTML form)
-@app.get("/", response_class=HTMLResponse)
-async def index():
-    with open("index.html") as f:
-        return f.read()
+    # Upload the file to FTP
+    try:
+        upload_to_ftp(file_path, remote_path)
+        return jsonify({"message": f"File uploaded successfully to {remote_path}"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        # Clean up temporary directory
+        shutil.rmtree(temp_dir)
 
-# Route to handle the upload
-@app.post("/upload")
-async def upload(request: FileUploadRequest):
-    mega_url = request.mega_url
 
-    # Generate local file path from Mega URL
-    file_name = mega_url.split("/")[-1]
-    local_file_path = f"./downloads/{file_name}"
+def generate_ftp_path(filename):
+    # Extract the base name (like "sakomoto-days-s1-ep1.mp4")
+    name_parts = filename.split('-')
+    show_name = name_parts[0]
+    season = name_parts[1]
+    episode = name_parts[2]
+    file_name = f"{show_name}/{season}/file/{filename}"
+    return file_name
 
-    # Download file from Mega and upload to FTP
-    download_and_upload_file(mega_url, local_file_path)
 
-    return {"message": "File successfully uploaded!"}
+def upload_to_ftp(file_path, remote_path):
+    # Connect to FTP server
+    ftp = FTP(FTP_HOST)
+    ftp.login(FTP_USER, FTP_PASS)
+
+    # Open file in binary mode for uploading
+    with open(file_path, 'rb') as file:
+        ftp.storbinary(f"STOR {remote_path}", file)
+
+    # Close FTP connection
+    ftp.quit()
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
