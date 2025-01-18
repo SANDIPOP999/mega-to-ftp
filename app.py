@@ -1,12 +1,10 @@
 import os
-import requests
 import time
-from fastapi import FastAPI, Form
 from mega import Mega
 from ftplib import FTP
+from fastapi import FastAPI, Form
 from pydantic import BaseModel
 from dotenv import load_dotenv
-from fastapi.responses import HTMLResponse
 
 # Load environment variables from .env file
 load_dotenv()
@@ -20,7 +18,7 @@ FTP_USER = os.getenv("FTP_USER")
 FTP_PASS = os.getenv("FTP_PASS")
 FTP_PATH = os.getenv("FTP_PATH")
 
-# Retry logic for FTP upload (without tenacity)
+# Retry logic for FTP upload
 def upload_file_with_retry(local_file_path, retries=5, delay=2):
     attempt = 0
     while attempt < retries:
@@ -59,7 +57,7 @@ def download_and_upload_file(mega_url, local_file_path):
 class FileUploadRequest(BaseModel):
     mega_url: str
 
-# Route to serve the landing page
+# Route to serve the landing page (HTML form)
 @app.get("/", response_class=HTMLResponse)
 async def index():
     with open("index.html") as f:
