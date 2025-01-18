@@ -1,16 +1,14 @@
 services:
   - type: web
-    name: mega-file-upload
+    name: mega-to-ftp
     env: python
-    plan: free
     buildCommand: "pip install -r requirements.txt"
-    startCommand: "uvicorn app:app --host 0.0.0.0 --port 8080"
+    startCommand: "python app.py"
+    plan: free
     envVars:
       - key: FTP_HOST
-        value: "ftp.example.com"
+        value: "your_ftp_host"
       - key: FTP_USER
-        value: "your_ftp_username"
+        value: "your_ftp_user"
       - key: FTP_PASS
         value: "your_ftp_password"
-      - key: FTP_PATH
-        value: "/path/to/upload"
