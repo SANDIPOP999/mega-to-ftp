@@ -1,15 +1,18 @@
 import os
 import requests
 import time
-from flask import Flask, request, jsonify
+from fastapi import FastAPI, Form
 from mega import Mega
 from ftplib import FTP
+from pydantic import BaseModel
 from dotenv import load_dotenv
+from fastapi.responses import HTMLResponse
 
 # Load environment variables from .env file
 load_dotenv()
 
-app = Flask(__name__)
+# Initialize FastAPI app
+app = FastAPI()
 
 # FTP credentials from environment variables
 FTP_HOST = os.getenv("FTP_HOST")
@@ -52,13 +55,20 @@ def download_and_upload_file(mega_url, local_file_path):
     # Upload to FTP
     upload_file_with_retry(local_file_path)
 
-@app.route('/')
-def index():
-    return open('index.html').read()
+# Define Pydantic model for the form data
+class FileUploadRequest(BaseModel):
+    mega_url: str
 
-@app.route('/upload', methods=['POST'])
-def upload():
-    mega_url = request.form['mega_url']
+# Route to serve the landing page
+@app.get("/", response_class=HTMLResponse)
+async def index():
+    with open("index.html") as f:
+        return f.read()
+
+# Route to handle the upload
+@app.post("/upload")
+async def upload(request: FileUploadRequest):
+    mega_url = request.mega_url
 
     # Generate local file path from Mega URL
     file_name = mega_url.split("/")[-1]
@@ -66,8 +76,5 @@ def upload():
 
     # Download file from Mega and upload to FTP
     download_and_upload_file(mega_url, local_file_path)
-    
-    return jsonify({"message": "File successfully uploaded!"})
 
-if __name__ == "__main__":
-    app.run(debug=True)
+    return {"message": "File successfully uploaded!"}
